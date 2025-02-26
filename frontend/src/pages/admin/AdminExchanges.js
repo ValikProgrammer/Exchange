@@ -1,8 +1,9 @@
+// frontend/src/pages/admin/AdminExchanges.js
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Badge, Button, Form, InputGroup } from 'react-bootstrap';
+import { Container, Table, Button, Badge, Modal, Form } from 'react-bootstrap';
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faCheckCircle, faExclamationTriangle, faClock } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes, faEye, faExchangeAlt } from '@fortawesome/free-solid-svg-icons';
 import { exchangeService } from '../../services/exchangeService';
 
 const PageTitle = styled.h1`
@@ -11,190 +12,219 @@ const PageTitle = styled.h1`
   margin-bottom: 30px;
 `;
 
-const TableContainer = styled.div`
-  background-color: #1a2c38;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 30px;
-`;
-
 const StyledTable = styled(Table)`
-  margin-bottom: 0;
+  background-color: #1a2c38;
+  color: white;
   
   th {
     background-color: #0f1923;
-    color: white;
-    font-weight: 600;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-    padding: 15px;
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   td {
-    vertical-align: middle;
-    padding: 15px;
-    border-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 `;
 
-const SearchBar = styled.div`
-  margin-bottom: 20px;
+const StatusBadge = styled(Badge)`
+  font-size: 0.85rem;
+  padding: 0.5em 0.75em;
+`;
+
+const ActionButton = styled(Button)`
+  margin-right: 5px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
 `;
 
 const AdminExchanges = () => {
   const [exchanges, setExchanges] = useState([]);
-  const [filteredExchanges, setFilteredExchanges] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedExchange, setSelectedExchange] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showProcessModal, setShowProcessModal] = useState(false);
   
+  // Загрузка обменов при монтировании компонента
   useEffect(() => {
-    // Загрузка данных об обменах
-    const allExchanges = exchangeService.getAllExchanges();
-    setExchanges(allExchanges);
-    setFilteredExchanges(allExchanges);
+    loadExchanges();
   }, []);
   
-  useEffect(() => {
-    // Фильтрация обменов при изменении поискового запроса или фильтра статуса
-    let filtered = exchanges;
-    
-    if (searchTerm) {
-      filtered = filtered.filter(exchange => 
-        exchange.id.includes(searchTerm) || 
-        exchange.walletAddress.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(exchange => exchange.status === statusFilter);
-    }
-    
-    setFilteredExchanges(filtered);
-  }, [searchTerm, statusFilter, exchanges]);
+  // Загрузка списка обменов
+  const loadExchanges = () => {
+    const allExchanges = exchangeService.getAllExchanges();
+    setExchanges(allExchanges);
+  };
   
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'pending':
-        return (
-          <Badge bg="warning">
-            <FontAwesomeIcon icon={faClock} className="me-1" />
-            Ожидание
-          </Badge>
-        );
-      case 'completed':
-        return (
-          <Badge bg="success">
-            <FontAwesomeIcon icon={faCheckCircle} className="me-1" />
-            Завершен
-          </Badge>
-        );
-      case 'failed':
-        return (
-          <Badge bg="danger">
-            <FontAwesomeIcon icon={faExclamationTriangle} className="me-1" />
-            Ошибка
-          </Badge>
-        );
-      default:
-        return (
-          <Badge bg="secondary">
-            <FontAwesomeIcon icon={faClock} className="me-1" />
-            {status}
-          </Badge>
-        );
+  // Открытие модального окна с деталями обмена
+  const handleViewDetails = (exchange) => {
+    setSelectedExchange(exchange);
+    setShowDetailsModal(true);
+  };
+  
+  // Открытие модального окна для обработки обмена
+  const handleProcessExchange = (exchange) => {
+    setSelectedExchange(exchange);
+    setShowProcessModal(true);
+  };
+  
+  // Обработка обмена (перевод средств)
+  const handleConfirmProcess = () => {
+    if (selectedExchange) {
+      // Выполнение перевода
+      exchangeService.processExchange(selectedExchange.id);
+      
+      // Обновление списка обменов
+      loadExchanges();
+      
+      // Закрытие модального окна
+      setShowProcessModal(false);
     }
+  };
+  
+  // Получение класса для бейджа статуса
+  const getStatusBadgeVariant = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'failed':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  };
+  
+  // Форматирование даты
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString();
   };
   
   return (
     <Container>
       <PageTitle>Управление обменами</PageTitle>
       
-      <SearchBar className="row">
-        <div className="col-md-6 mb-3 mb-md-0">
-          <InputGroup>
-            <InputGroup.Text>
-              <FontAwesomeIcon icon={faSearch} />
-            </InputGroup.Text>
-            <Form.Control
-              placeholder="Поиск по ID или адресу кошелька"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </InputGroup>
-        </div>
-        <div className="col-md-6">
-          <InputGroup>
-            <InputGroup.Text>
-              <FontAwesomeIcon icon={faFilter} />
-            </InputGroup.Text>
-            <Form.Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">Все статусы</option>
-              <option value="pending">Ожидание</option>
-              <option value="completed">Завершен</option>
-              <option value="failed">Ошибка</option>
-            </Form.Select>
-          </InputGroup>
-        </div>
-      </SearchBar>
-      
-      <TableContainer>
-        <StyledTable responsive hover variant="dark">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Дата</th>
-              <th>От</th>
-              <th>К</th>
-              <th>Адрес кошелька</th>
-              <th>Статус</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredExchanges.length > 0 ? (
-              filteredExchanges.map(exchange => (
-                <tr key={exchange.id}>
-                  <td>{exchange.id}</td>
-                  <td>{new Date(exchange.createdAt).toLocaleString()}</td>
-                  <td>{exchange.fromAmount} {exchange.fromCurrency}</td>
-                  <td>{exchange.toAmount} {exchange.toCurrency}</td>
-                  <td>
-                    <span className="text-truncate d-inline-block" style={{ maxWidth: '150px' }}>
-                      {exchange.walletAddress}
-                    </span>
-                  </td>
-                  <td>{getStatusBadge(exchange.status)}</td>
-                  <td>
-                    <Button variant="outline-primary" size="sm" className="me-2">
-                      Детали
-                    </Button>
-                    {exchange.status === 'pending' && (
-                      <Button 
-                        variant="outline-success" 
-                        size="sm"
-                        onClick={() => {
-                          exchangeService.updateExchangeStatus(exchange.id, 'completed');
-                          setExchanges([...exchanges]); // Обновление списка
-                        }}
-                      >
-                        Завершить
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7" className="text-center">
-                  Обмены не найдены
+      <StyledTable responsive hover>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Дата</th>
+            <th>От</th>
+            <th>К</th>
+            <th>Адрес</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {exchanges.length > 0 ? (
+            exchanges.map(exchange => (
+              <tr key={exchange.id}>
+                <td>{exchange.id.substring(0, 8)}...</td>
+                <td>{formatDate(exchange.createdAt)}</td>
+                <td>{exchange.fromAmount} {exchange.fromCurrency}</td>
+                <td>{exchange.toAmount.toFixed(8)} {exchange.toCurrency}</td>
+                <td>{exchange.walletAddress.substring(0, 10)}...</td>
+                <td>
+                  <StatusBadge bg={getStatusBadgeVariant(exchange.status)}>
+                    {exchange.status}
+                  </StatusBadge>
+                </td>
+                <td>
+                  <ActionButton 
+                    variant="info" 
+                    onClick={() => handleViewDetails(exchange)}
+                  >
+                    <FontAwesomeIcon icon={faEye} />
+                  </ActionButton>
+                  
+                  {exchange.status === 'pending' && (
+                    <ActionButton 
+                      variant="success" 
+                      onClick={() => handleProcessExchange(exchange)}
+                    >
+                      <FontAwesomeIcon icon={faExchangeAlt} />
+                    </ActionButton>
+                  )}
                 </td>
               </tr>
-            )}
-          </tbody>
-        </StyledTable>
-      </TableContainer>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="7" className="text-center">Нет данных об обменах</td>
+            </tr>
+          )}
+        </tbody>
+      </StyledTable>
+      
+      {/* Модальное окно с деталями обмена */}
+      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)}>
+        <Modal.Header closeButton className="bg-dark text-white">
+          <Modal.Title>Детали обмена</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="bg-dark text-white">
+          {selectedExchange && (
+            <div>
+              <p><strong>ID:</strong> {selectedExchange.id}</p>
+              <p><strong>Создан:</strong> {formatDate(selectedExchange.createdAt)}</p>
+              <p><strong>Обновлен:</strong> {formatDate(selectedExchange.updatedAt)}</p>
+              <p><strong>Отправлено:</strong> {selectedExchange.fromAmount} {selectedExchange.fromCurrency}</p>
+              <p><strong>Получено:</strong> {selectedExchange.toAmount.toFixed(8)} {selectedExchange.toCurrency}</p>
+              <p><strong>Адрес кошелька:</strong> {selectedExchange.walletAddress}</p>
+              <p>
+                <strong>Статус:</strong> 
+                <StatusBadge bg={getStatusBadgeVariant(selectedExchange.status)} className="ms-2">
+                  {selectedExchange.status}
+                </StatusBadge>
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="bg-dark">
+          <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
+            Закрыть
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      
+      {/* Модальное окно для обработки обмена */}
+      <Modal show={showProcessModal} onHide={() => setShowProcessModal(false)}>
+        <Modal.Header closeButton className="bg-dark text-white">
+          <Modal.Title>Обработка обмена</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="bg-dark text-white">
+          {selectedExchange && (
+            <div>
+              <p>Вы собираетесь обработать следующий обмен:</p>
+              <p><strong>ID:</strong> {selectedExchange.id}</p>
+              <p><strong>Отправлено:</strong> {selectedExchange.fromAmount} {selectedExchange.fromCurrency}</p>
+              <p><strong>К отправке:</strong> {selectedExchange.toAmount.toFixed(8)} {selectedExchange.toCurrency}</p>
+              <p><strong>Адрес кошелька:</strong> {selectedExchange.walletAddress}</p>
+              
+              <Form.Group className="mt-4">
+                <Form.Check
+                  type="checkbox"
+                  id="confirm-checkbox"
+                  label="Я подтверждаю, что средства были отправлены на указанный адрес"
+                />
+              </Form.Group>
+              
+              <div className="alert alert-warning mt-3">
+                <strong>Внимание!</strong> Эта операция имитирует отправку средств. В реальном проекте здесь должна быть интеграция с API кошелька.
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="bg-dark">
+          <Button variant="secondary" onClick={() => setShowProcessModal(false)}>
+            Отмена
+          </Button>
+          <Button variant="success" onClick={handleConfirmProcess}>
+            <FontAwesomeIcon icon={faCheck} className="me-2" />
+            Подтвердить отправку
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

@@ -1,153 +1,123 @@
-import React from 'react';
-import { Navbar, Container, Nav, NavDropdown, Button } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+// frontend/src/components/Header.js
+import React, { useState, useEffect } from 'react';
+import { Navbar, Nav, Container } from 'react-bootstrap';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faSignOutAlt, faExchangeAlt, faHistory, faCog } from '@fortawesome/free-solid-svg-icons';
+import logo from '../assets/logo.png'; // Создайте папку assets и добавьте логотип
 
 const StyledNavbar = styled(Navbar)`
+  background-color: #4169e1;
   padding: 15px 0;
-  background-color: rgba(10, 16, 23, 0.95);
-  backdrop-filter: blur(10px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+  
+  &.scrolled {
+    background-color: rgba(65, 105, 225, 0.95);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
 `;
 
-const Logo = styled.img`
+const Logo = styled(Link)`
+  display: flex;
+  align-items: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  
+  &:hover {
+    color: white;
+  }
+`;
+
+const LogoImage = styled.img`
   height: 40px;
+  margin-right: 10px;
 `;
 
-const NavLink = styled(Nav.Link)`
-  color: rgba(255, 255, 255, 0.8) !important;
-  margin: 0 10px;
+const StyledNavLink = styled(NavLink)`
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 15px;
   font-weight: 500;
-  transition: color 0.2s;
+  text-decoration: none;
+  position: relative;
+  padding: 5px 0;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: white;
+    transition: width 0.3s ease;
+  }
   
   &:hover, &.active {
-    color: white !important;
-  }
-`;
-
-const UserDropdown = styled(NavDropdown)`
-  .dropdown-toggle::after {
-    display: none;
-  }
-  
-  .dropdown-menu {
-    background-color: #1a2c38;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  }
-  
-  .dropdown-item {
-    color: rgba(255, 255, 255, 0.8);
-    padding: 10px 15px;
+    color: white;
     
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: white;
+    &:after {
+      width: 100%;
     }
   }
 `;
 
-const UserAvatar = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #007bff;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  margin-right: 10px;
-`;
-
 const Header = () => {
-  const { isAuthenticated, currentUser, isAdmin, logout } = useAuth();
-  const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
   
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-  
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
   
   return (
-    <StyledNavbar expand="lg" variant="dark" fixed="top">
+    <StyledNavbar expand="lg" variant="dark" className={scrolled ? 'scrolled' : ''}>
       <Container>
-        <Navbar.Brand as={Link} to="/">
-          <Logo src="/images/logo.svg" alt="CryptoExchange" />
+        <Navbar.Brand as="div">
+          <Logo to="/">
+            <LogoImage src={logo} alt="WHITEBIRD" />
+            WHITEBIRD
+          </Logo>
         </Navbar.Brand>
         
-        <Navbar.Toggle aria-controls="navbar-nav" />
-        
-        <Navbar.Collapse id="navbar-nav">
-          <Nav className="me-auto">
-            <NavLink as={Link} to="/">Главная</NavLink>
-            <NavLink as={Link} to="/exchange">Обмен</NavLink>
-            <NavLink as={Link} to="/about">О нас</NavLink>
-            <NavLink as={Link} to="/faq">FAQ</NavLink>
-            <NavLink as={Link} to="/contact">Контакты</NavLink>
-          </Nav>
-          
-          <Nav>
-            {isAuthenticated ? (
-              <UserDropdown 
-                title={
-                  <div className="d-flex align-items-center">
-                    <UserAvatar>{getInitials(currentUser?.name)}</UserAvatar>
-                    <span className="d-none d-md-inline">{currentUser?.name}</span>
-                  </div>
-                }
-                id="user-dropdown"
-              >
-                <NavDropdown.Item as={Link} to="/history">
-                  <FontAwesomeIcon icon={faHistory} className="me-2" />
-                  История обменов
-                </NavDropdown.Item>
-                
-                <NavDropdown.Item as={Link} to="/profile">
-                  <FontAwesomeIcon icon={faUser} className="me-2" />
-                  Профиль
-                </NavDropdown.Item>
-                
-                {isAdmin && (
-                  <NavDropdown.Item as={Link} to="/admin">
-                    <FontAwesomeIcon icon={faCog} className="me-2" />
-                    Панель администратора
-                  </NavDropdown.Item>
-                )}
-                
-                <NavDropdown.Divider />
-                
-                <NavDropdown.Item onClick={handleLogout}>
-                  <FontAwesomeIcon icon={faSignOutAlt} className="me-2" />
-                  Выйти
-                </NavDropdown.Item>
-              </UserDropdown>
-            ) : (
-              <>
-                <Button 
-                  as={Link} 
-                  to="/login" 
-                  variant="outline-light" 
-                  className="me-2"
-                >
-                  Войти
-                </Button>
-                <Button 
-                  as={Link} 
-                  to="/register" 
-                  variant="primary"
-                >
-                  Регистрация
-                </Button>
-              </>
-            )}
+        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Collapse id="basic-navbar-nav">
+          <Nav className="ms-auto">
+            <StyledNavLink to="/exchange" className={({ isActive }) => isActive ? 'active' : ''}>
+              Обмен
+            </StyledNavLink>
+            <StyledNavLink to="/status" className={({ isActive }) => isActive ? 'active' : ''}>
+              Статус
+            </StyledNavLink>
+            <StyledNavLink to="/faq" className={({ isActive }) => isActive ? 'active' : ''}>
+              Вопросы-ответы
+            </StyledNavLink>
+            <StyledNavLink to="/news" className={({ isActive }) => isActive ? 'active' : ''}>
+              Новости
+            </StyledNavLink>
+            <StyledNavLink to="/documents" className={({ isActive }) => isActive ? 'active' : ''}>
+              Документы
+            </StyledNavLink>
+            <StyledNavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''}>
+              Поддержка
+            </StyledNavLink>
           </Nav>
         </Navbar.Collapse>
       </Container>
