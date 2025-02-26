@@ -1,0 +1,10 @@
+{
+    "mongoURI": "mongodb://localhost:27017/crypto-exchange",
+    "jwtSecret": "your_jwt_secret_key_change_in_production",
+    "jwtExpiration": "24h",
+    "corsOrigin": "http://localhost:3000",
+    "supportedCurrencies": ["BTC", "ETH", "USDT", "BNB", "XRP", "ADA", "SOL", "DOGE"],
+    "defaultMarkup": 3,
+    "rateUpdateInterval": 60000,
+    "transactionCheckInterval": 30000
+  }
